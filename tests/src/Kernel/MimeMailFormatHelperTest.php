@@ -50,7 +50,7 @@ class MimeMailFormatHelperTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Sets up an anonymous and two authenticated users.
     $this->adminUser = $this->setUpCurrentUser([

@@ -2,8 +2,9 @@
 
 namespace Drupal\mimemail\Utility;
 
-use Drupal\Component\Utility\Mail;
-use Drupal\Component\Utility\Unicode;
+use Symfony\Component\Mime\Header\MailboxHeader;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Header\UnstructuredHeader;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Mail\MailFormatHelper;
 use Drupal\Core\StreamWrapper\StreamWrapperManager;
@@ -58,7 +59,8 @@ class MimeMailFormatHelper {
         // Return full RFC2822 format only if we're NOT simplifying AND
         // the account name is NOT empty.
         if (!$simplify && !empty($address['name'])) {
-          return Mail::formatDisplayName($address['name']) . ' <' . $address['mail'] . '>';
+          $mailbox = new MailboxHeader('From', new Address($address['mail'], $address['name']));
+          return $mailbox->getBodyAsString();
         }
         // All other combinations, return a simple email.
         return $address['mail'];
@@ -76,7 +78,8 @@ class MimeMailFormatHelper {
       // Return full RFC2822 format only if we're NOT simplifying AND
       // the account name is NOT empty.
       if (!$simplify && !empty($address->getAccountName())) {
-        return Mail::formatDisplayName($address->getAccountName()) . ' <' . $address->getEmail() . '>';
+        $mailbox = new MailboxHeader('From', new Address($address->getEmail(), $address->getAccountName()));
+        return $mailbox->getBodyAsString();
       }
       // All other combinations, return a simple email.
       return $address->getEmail();
@@ -105,7 +108,8 @@ class MimeMailFormatHelper {
         }
         // Put $address into full RFC2822 format only if we're NOT simplifying
         // AND the account name is NOT empty.
-        return Mail::formatDisplayName(trim($name)) . ' <' . $bare_address . '>';
+        $mailbox = new MailboxHeader('From', new Address($bare_address, trim($name)));
+        return $mailbox->getBodyAsString();
       }
     }
 
@@ -345,7 +349,7 @@ class MimeMailFormatHelper {
     // to an email message.
     static $files = [];
 
-    /** @var \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface $mime_type_guesser */
+    /** @var \Symfony\Component\Mime\MimeTypesInterface $mime_type_guesser */
     $mime_type_guesser = \Drupal::service('file.mime_type.guesser');
 
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
@@ -380,7 +384,7 @@ class MimeMailFormatHelper {
         }
         // The $url is a non-local URI that needs to be converted to a URL.
         else {
-          $file = $file_system->realpath($url) ? $file_system->realpath($url) : file_create_url($url);
+          $file = $file_system->realpath($url) ? $file_system->realpath($url) : \Drupal::service('file_url_generator')->generateAbsoluteString($url);
         }
       }
     }
@@ -477,7 +481,7 @@ class MimeMailFormatHelper {
       if ($is_image) {
         if ($to_link) {
           // Exclude images from embedding if needed.
-          $url = file_create_url($url);
+          $url = \Drupal::service('file_url_generator')->generateAbsoluteString($url);
           $url = str_replace(' ', '%20', $url);
         }
         else {
@@ -573,7 +577,7 @@ class MimeMailFormatHelper {
     // Control variable to avoid boundary collision.
     static $part_num = 0;
 
-    /** @var \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface $mime_type_guesser */
+    /** @var \Symfony\Component\Mime\MimeTypesInterface $mime_type_guesser */
     $mime_type_guesser = \Drupal::service('file.mime_type.guesser');
 
     /** @var \Drupal\Component\Datetime\TimeInterface $time */
@@ -744,7 +748,7 @@ class MimeMailFormatHelper {
     // Run all headers through mime_header_encode() to convert non-ASCII
     // characters to an RFC compliant string, similar to drupal_mail().
     foreach ($headers as $field_name => $field_body) {
-      $headers[$field_name] = Unicode::mimeHeaderEncode($field_body);
+      $headers[$field_name] = (new UnstructuredHeader($field_name, $field_body))->getBodyAsString();
     }
 
     return $headers;
