@@ -1,0 +1,9 @@
+{
+  "name": "drupal/mimemail",
+  "description": "Sends MIME-encoded emails with embedded images and attachments.",
+  "type": "drupal-module",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "drupal/mailsystem": "^4.4"
+  }
+}
